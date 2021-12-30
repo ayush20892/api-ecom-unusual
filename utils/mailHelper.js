@@ -1,0 +1,25 @@
+const nodemailer = require("nodemailer");
+
+const mailHelper = async (option) => {
+  const transporter = nodemailer.createTransport({
+    // host: process.env.SMTP_HOST,
+    // port: process.env.SMTP_PORT,
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER, // generated ethereal user
+      pass: process.env.GMAIL_PASS, // generated ethereal password
+    },
+  });
+
+  const message = {
+    from: "ansh@gmail.com", // sender address
+    to: option.to, // list of receivers
+    subject: option.subject, // Subject line
+    text: option.text, // plain text body
+  };
+
+  // send mail with defined transport object
+  await transporter.sendMail(message);
+};
+
+module.exports = mailHelper;
