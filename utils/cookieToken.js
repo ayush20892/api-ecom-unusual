@@ -6,6 +6,8 @@ module.exports = async (user, res) => {
     httpOnly: true,
   };
 
+  user.password = undefined;
+
   return res.status(201).cookie("token", userToken, cookieOptions).json({
     success: true,
     user,
