@@ -120,7 +120,7 @@ exports.forgotPassword = BigPromise(async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    return next(new customError(error.message, 500));
+    return res.json({ message: error.message });
   }
 });
 
