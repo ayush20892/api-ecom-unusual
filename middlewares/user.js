@@ -6,11 +6,14 @@ const jwt = require("jsonwebtoken");
 exports.isLoggedIn = async (req, res, next) => {
   const token = req.cookies.token;
 
-  if (!token) return res.status(401).send("Please Login First");
+  if (!token)
+    return res.json({ success: false, message: "Please Login First" });
 
   const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
-  req.user = await User.findById(decode.id);
+  req.user = await User.findById(decode.id)
+    .populate("wishlist.product")
+    .populate("cart.product");
 
   next();
 };
@@ -18,7 +21,7 @@ exports.isLoggedIn = async (req, res, next) => {
 exports.isUserVerified = async (req, res, next) => {
   const code = req.cookies.userVerify;
 
-  if (!code) return res.status(401).send("Invalid Code !");
+  if (!code) return res.json({ success: false, message: "Invalid Code !" });
 
   const user = await User.findOne({
     code,
