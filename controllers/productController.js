@@ -4,7 +4,10 @@ const WhereClause = require("../utils/whereClause");
 const { extend } = require("lodash");
 
 exports.getAllProducts = BigPromise(async (req, res) => {
-  const products = new WhereClause(Product.find(), req.query).search().filter();
+  const products = new WhereClause(Product.find(), req.query)
+    .search()
+    .filter()
+    .pager();
 
   const productResult = await products.base;
 
