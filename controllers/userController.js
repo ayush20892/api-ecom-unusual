@@ -6,13 +6,29 @@ const customError = require("../utils/customError");
 const mailHelper = require("../utils/mailHelper");
 const crypto = require("crypto");
 const { extend } = require("lodash");
+const validator = require("validator");
 
 exports.signup = BigPromise(async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
-    res.status(400).send("Name, Email and Password all fields are required.");
+    return res.json({
+      success: false,
+      message: "All fields are required !!",
+    });
   }
+
+  if (!validator.isEmail(email))
+    return res.json({
+      success: false,
+      message: "Enter correct email format.",
+    });
+
+  if (password.length < 6)
+    return res.json({
+      success: false,
+      message: "Password should be of atleast of 6 chars.",
+    });
 
   const user = await User.create(req.body);
 
@@ -24,16 +40,29 @@ exports.login = BigPromise(async (req, res) => {
 
   // If field not recived from body.
   if (!email || !password)
-    return res.status(400).send("Email and Password both required");
+    return res.json({
+      success: false,
+      message: "Email and Password both required",
+    });
 
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email })
+    .select("+password")
+    .populate("wishlist.product")
+    .populate("cart.product");
 
   // If user not present in database.
-  if (!user) return res.status(400).send("User Doesn't exists in the databse.");
+  if (!user)
+    return res.json({
+      success: false,
+      message: "User Doesn't exists in the database.",
+    });
 
   // If password doesn't match.
   if (!(await user.isPasswordValidated(password)))
-    return res.status(400).send("Incorrect Password !!");
+    return res.json({
+      success: false,
+      message: "Incorrect Password !!",
+    });
 
   cookieToken(user, res);
 });
@@ -53,23 +82,32 @@ exports.logout = BigPromise(async (req, res) => {
 exports.forgotPassword = BigPromise(async (req, res) => {
   const { email } = req.body;
 
-  if (!email) return next(new customError("Email field is required", 400));
+  if (!email)
+    return res.json({
+      success: false,
+      message: "Email field is required",
+    });
 
   const user = await User.findOne({ email });
 
-  if (!user) return res.status(400).send("Invalid Email, not registered");
+  if (!user)
+    return res.json({
+      success: false,
+      message: "Invalid Email, not registered",
+    });
 
   const forgotCode = user.getForgotPasswordCode();
 
   await user.save({ validateBeforeSave: false });
 
-  const message = `Copy and paste this Code ${forgotCode} to verify.`;
+  const message = `<div>Copy and paste this Code ||<b> ${forgotCode} </b>|| to verify.</div>`;
 
   try {
     await mailHelper({
       to: email,
       subject: "LCO Tshirt - Password Reset Mail",
       text: message,
+      html: message,
     });
 
     res.status(200).json({
@@ -95,11 +133,15 @@ exports.verifyForgotCode = BigPromise(async (req, res) => {
     .digest("hex");
 
   const user = await User.findOne({
-    encrypToken,
+    forgotPasswordCode: encrypToken,
     forgotPasswordExpiry: { $gt: Date.now() },
   });
 
-  if (!user) res.status(400).send("Invalid Code or Code Expired.");
+  if (!user)
+    res.json({
+      success: false,
+      message: "Invalid Code or Code Expired.",
+    });
 
   const cookieOptions = {
     expires: new Date(Date.now() + process.env.COOKIE_EXPIRY * 60 * 60 * 1000),
@@ -118,15 +160,16 @@ exports.passwordReset = BigPromise(async (req, res) => {
   const { password, confirmPassword } = req.body;
 
   if (!password || !confirmPassword)
-    return next(
-      new customError(
-        "Password and ConfirmPassword both fields are required",
-        400
-      )
-    );
+    return res.json({
+      success: false,
+      message: "Both fields are required",
+    });
 
   if (password !== confirmPassword)
-    res.status(400).send("Password and Confirm Password didn't match");
+    res.json({
+      success: false,
+      message: "Password and Confirm Password didn't match",
+    });
 
   user.password = password;
   user.forgotPasswordToken = undefined;
@@ -153,15 +196,36 @@ exports.userDashboard = BigPromise(async (req, res) => {
 });
 
 exports.updatePassword = BigPromise(async (req, res) => {
-  const user = await User.findById(req.user.id).select("+password");
+  const user = await User.findById(req.user.id)
+    .select("+password")
+    .populate("wishlist.product")
+    .populate("cart.product");
 
   const isPasswordValidated = await user.isPasswordValidated(
     req.body.oldPassword
   );
 
-  if (!isPasswordValidated) res.status(400).send("Enter correct old password.");
+  if (!isPasswordValidated)
+    res.json({
+      success: false,
+      message: "Enter correct old password.",
+    });
 
-  user.password = req.body.password;
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword)
+    return res.json({
+      success: false,
+      message: "Password and ConfirmPassword both fields are required",
+    });
+
+  if (password !== confirmPassword)
+    res.json({
+      success: false,
+      message: "Password and Confirm Password didn't match",
+    });
+
+  user.password = password;
 
   await user.save();
 
@@ -171,15 +235,17 @@ exports.updatePassword = BigPromise(async (req, res) => {
 exports.updateUser = BigPromise(async (req, res) => {
   const user = req.user;
 
+  if (req.body.email) {
+    if (!validator.isEmail(req.body.email))
+      return res.json({
+        success: false,
+        message: "Enter correct email format.",
+      });
+  }
+
   const updatedUser = extend(user, req.body);
 
   await user.save();
-
-  // const user = await User.findByIdAndUpdate(req.user.id, updatedObject, {
-  //   new: true,
-  //   runValidators: true,
-  //   useFindAndModify: false,
-  // });
 
   res.status(200).json({
     success: true,
@@ -189,10 +255,7 @@ exports.updateUser = BigPromise(async (req, res) => {
 
 //Wishlist Controllers
 exports.getAllWishlistItems = BigPromise(async (req, res) => {
-  const user = await User.findById(req.user._id).populate(
-    "wishlist.product",
-    "name price"
-  );
+  const user = await User.findById(req.user._id).populate("wishlist.product");
 
   res.status(200).json({
     success: true,
@@ -203,9 +266,16 @@ exports.getAllWishlistItems = BigPromise(async (req, res) => {
 exports.addToWishlist = BigPromise(async (req, res) => {
   const user = req.user;
 
-  const product = await Product.findById(req.body.productId);
+  if (
+    user.wishlist.find(
+      (item) => item.product._id.toString() === req.body.productId
+    )
+  )
+    return res.json({
+      success: false,
+    });
 
-  user.wishlist.push({ product: product._id });
+  user.wishlist.push({ product: req.body.productId });
 
   await user.save();
 
@@ -218,11 +288,11 @@ exports.addToWishlist = BigPromise(async (req, res) => {
 exports.deleteFromWishlist = BigPromise(async (req, res) => {
   const user = req.user;
 
-  const product = await Product.findById(req.body.productId);
+  const newWishlist = user.wishlist.filter(
+    (prod) => prod.product._id.toString() !== req.body.productId
+  );
 
-  user.wishlist = user.wishlist.filter((prod) => prod.product === product._id);
-
-  await user.save();
+  await user.updateOne({ wishlist: newWishlist });
 
   res.status(200).json({
     success: true,
@@ -232,10 +302,7 @@ exports.deleteFromWishlist = BigPromise(async (req, res) => {
 
 //Cart Controllers
 exports.getAllCartItems = BigPromise(async (req, res) => {
-  const user = await User.findById(req.user._id).populate(
-    "cart.product",
-    "name price"
-  );
+  const user = await User.findById(req.user._id).populate("cart.product");
 
   res.status(200).json({
     success: true,
@@ -246,9 +313,14 @@ exports.getAllCartItems = BigPromise(async (req, res) => {
 exports.addToCart = BigPromise(async (req, res) => {
   const user = req.user;
 
-  const product = await Product.findById(req.body.productId);
+  if (
+    user.cart.find((item) => item.product._id.toString() === req.body.productId)
+  )
+    return res.json({
+      success: false,
+    });
 
-  user.cart.push({ product: product._id, quantity: req.body.quantity });
+  user.cart.push({ product: req.body.productId, quantity: req.body.quantity });
 
   await user.save();
 
@@ -261,9 +333,30 @@ exports.addToCart = BigPromise(async (req, res) => {
 exports.deleteFromCart = BigPromise(async (req, res) => {
   const user = req.user;
 
-  const product = await Product.findById(req.body.productId);
+  const newCart = user.cart.filter(
+    (prod) => prod.product._id.toString() !== req.body.productId
+  );
 
-  user.cart = user.cart.filter((prod) => prod.product === product._id);
+  console.log(newCart);
+
+  await user.updateOne({ cart: newCart });
+
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
+
+exports.updateCartQuantity = BigPromise(async (req, res) => {
+  const user = req.user;
+  const newCart = user.cart.map((prod) => {
+    if (prod.product._id.toString() === req.body.productId) {
+      prod.quantity = req.body.quantity;
+    }
+    return prod;
+  });
+
+  extend(user, { cart: newCart });
 
   await user.save();
 

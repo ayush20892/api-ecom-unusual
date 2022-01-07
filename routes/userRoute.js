@@ -17,6 +17,7 @@ const {
   getAllCartItems,
   addToCart,
   deleteFromCart,
+  updateCartQuantity,
   adminUsers,
   adminGetUser,
   adminUpdateUser,
@@ -56,7 +57,8 @@ router
   .route("/user/cart")
   .get(isLoggedIn, getAllCartItems)
   .post(isLoggedIn, addToCart)
-  .delete(isLoggedIn, deleteFromCart);
+  .delete(isLoggedIn, deleteFromCart)
+  .put(isLoggedIn, updateCartQuantity);
 
 // Admin Routes
 router
