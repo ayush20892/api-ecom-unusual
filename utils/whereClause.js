@@ -40,17 +40,17 @@ class WhereClause {
     return this;
   }
 
-  // pager() {
-  //   let currentPage = 1;
-  //   let limit = 10;
-  //   if (this.bigQ.page) currentPage = this.bigQ.page;
+  pager() {
+    let currentPage = 1;
+    let limit = 50;
+    if (this.bigQ.page) currentPage = this.bigQ.page;
 
-  //   if (this.bigQ.limit) limit = JSON.parse(this.bigQ.limit);
+    if (this.bigQ.limit) limit = JSON.parse(this.bigQ.limit);
 
-  //   this.base = this.base.limit(limit).skip(limit * (currentPage - 1));
+    this.base = this.base.limit(limit).skip(limit * (currentPage - 1));
 
-  //   return this;
-  // }
+    return this;
+  }
 }
 
 module.exports = WhereClause;
