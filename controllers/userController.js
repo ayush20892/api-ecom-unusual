@@ -177,11 +177,13 @@ exports.passwordReset = BigPromise(async (req, res) => {
   user.forgotPasswordToken = undefined;
   user.forgotPasswordExpiry = undefined;
 
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   res.cookie("userVerify", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+    sameSite: "none",
+    secure: true,
   });
 
   cookieToken(user, res);
@@ -338,8 +340,6 @@ exports.deleteFromCart = BigPromise(async (req, res) => {
   const newCart = user.cart.filter(
     (prod) => prod.product._id.toString() !== req.body.productId
   );
-
-  console.log(newCart);
 
   await user.updateOne({ cart: newCart });
 
