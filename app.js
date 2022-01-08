@@ -9,7 +9,11 @@ const cookieParser = require("cookie-parser");
 // Middlewares
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://unusual-ecom.netlify.app/"],
+    origin: [
+      "http://localhost:3000",
+      "https://unusual-ecom.netlify.app/",
+      "https://deploy-preview-2--unusual-ecom.netlify.app/",
+    ],
     credentials: true,
   })
 );
