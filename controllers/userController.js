@@ -29,7 +29,7 @@ exports.signup = BigPromise(async (req, res) => {
   if (userAlreadyExist)
     return res.json({
       success: false,
-      message: "Email Id Already Registered.",
+      message: "Email Already Registered.",
     });
 
   if (password.length < 6)
