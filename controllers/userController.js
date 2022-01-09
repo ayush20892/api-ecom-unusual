@@ -24,9 +24,9 @@ exports.signup = BigPromise(async (req, res) => {
       message: "Enter correct email format.",
     });
 
-  const user = await User.findOne({ email });
+  const userAlreadyExist = await User.findOne({ email });
 
-  if (user)
+  if (userAlreadyExist)
     return res.json({
       success: false,
       message: "Email Id Already Registered.",
