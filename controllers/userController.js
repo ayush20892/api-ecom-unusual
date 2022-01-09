@@ -128,7 +128,11 @@ exports.forgotPassword = BigPromise(async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    return res.json({ message: error.message });
+    return res.json({
+      success: false,
+      message: "This Email doesn't Exists in gmail.",
+      error: error.message,
+    });
   }
 });
 
