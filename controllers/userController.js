@@ -24,6 +24,14 @@ exports.signup = BigPromise(async (req, res) => {
       message: "Enter correct email format.",
     });
 
+  const user = await User.findOne({ email });
+
+  if (user)
+    return res.json({
+      success: false,
+      message: "Email Id Already Registered.",
+    });
+
   if (password.length < 6)
     return res.json({
       success: false,
