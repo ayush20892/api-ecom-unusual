@@ -1,5 +1,7 @@
 const User = require("../models/userModel");
 const Product = require("../models/productModel");
+const Address = require("../models/addressModel");
+const Order = require("../models/orderModel");
 const BigPromise = require("../middlewares/bigPromise");
 const cookieToken = require("../utils/cookieToken");
 const customError = require("../utils/customError");
@@ -56,7 +58,9 @@ exports.login = BigPromise(async (req, res) => {
   const user = await User.findOne({ email })
     .select("+password")
     .populate("wishlist.product")
-    .populate("cart.product");
+    .populate("cart.product")
+    .populate("addresses")
+    .populate("orders");
 
   // If user not present in database.
   if (!user)
@@ -377,6 +381,135 @@ exports.updateCartQuantity = BigPromise(async (req, res) => {
   res.status(200).json({
     success: true,
     user,
+  });
+});
+
+// Address Controllers
+exports.addAddress = BigPromise(async (req, res) => {
+  const user = req.user;
+  const { name, addressLine, city, state, country, pinCode, mobileNo } =
+    req.body;
+
+  if (!name | !addressLine | !city | !state | !country | !pinCode | !mobileNo) {
+    return res.json({
+      success: false,
+      message: "All fields are required !!",
+    });
+  }
+
+  const addressObject = {
+    name,
+    addressLine,
+    city,
+    state,
+    country,
+    pinCode,
+    mobileNo,
+    user: user._id,
+  };
+  console.log(addressObject);
+  const address = await Address.create(addressObject);
+
+  user.addresses.push(address);
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    address,
+  });
+});
+
+exports.editAddress = BigPromise(async (req, res) => {
+  const address = await Address.findById(req.params.addressId);
+
+  const updatedAddress = extend(address, req.body);
+
+  await address.save();
+
+  res.status(200).json({
+    success: true,
+    updatedAddress,
+  });
+});
+
+exports.deleteAddress = BigPromise(async (req, res) => {
+  const user = req.user;
+  const address = await Address.findById(req.params.addressId);
+
+  await address.delete();
+
+  const updatedAddress = user.addresses.filter(
+    (addr) => addr._id.toString() !== req.params.addressId
+  );
+
+  await user.updateOne({ addresses: updatedAddress });
+
+  res.status(200).json({
+    success: true,
+    updatedAddress,
+  });
+});
+
+// Orders
+exports.createOrder = BigPromise(async (req, res) => {
+  const user = req.user;
+  const {
+    addressId,
+    products,
+    paymentInfoId,
+    totalAmount,
+    discountAmount,
+    orderAmount,
+  } = req.body;
+
+  const orderObject = {
+    address: addressId,
+    products,
+    paymentInfoId,
+    totalAmount,
+    discountAmount,
+    orderAmount,
+    user: user._id,
+  };
+
+  if (!addressId) {
+    return res.json({
+      success: false,
+      message: "Select a address",
+    });
+  }
+
+  const order = await Order.create(orderObject);
+
+  order.populate("products.product");
+  order.populate("address");
+
+  user.orders.push(order);
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    order,
+  });
+});
+
+exports.cancelOrder = BigPromise(async (req, res) => {
+  const user = req.user;
+  const order = await Order.findById(req.body.orderId);
+
+  await order.delete();
+
+  const updatedOrders = user.orders.filter(
+    (order) => order._id.toString() !== req.body.orderId
+  );
+
+  await user.updateOne({ orders: updatedOrders });
+
+  res.status(200).json({
+    success: true,
+    updatedOrders,
   });
 });
 

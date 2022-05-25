@@ -50,6 +50,20 @@ const userSchema = mongoose.Schema({
       },
     },
   ],
+  addresses: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
+    },
+  ],
+  orders: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

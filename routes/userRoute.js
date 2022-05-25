@@ -18,6 +18,11 @@ const {
   addToCart,
   deleteFromCart,
   updateCartQuantity,
+  addAddress,
+  editAddress,
+  deleteAddress,
+  createOrder,
+  cancelOrder,
   adminUsers,
   adminGetUser,
   adminUpdateUser,
@@ -59,6 +64,19 @@ router
   .post(isLoggedIn, addToCart)
   .delete(isLoggedIn, deleteFromCart)
   .put(isLoggedIn, updateCartQuantity);
+
+// Address Route
+router.route("/user/address").post(isLoggedIn, addAddress);
+router
+  .route("/user/address/:addressId")
+  .post(isLoggedIn, editAddress)
+  .delete(isLoggedIn, deleteAddress);
+
+// Order Route
+router
+  .route("/user/order")
+  .post(isLoggedIn, createOrder)
+  .delete(isLoggedIn, cancelOrder);
 
 // Admin Routes
 router

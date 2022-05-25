@@ -13,7 +13,9 @@ exports.isLoggedIn = async (req, res, next) => {
 
   req.user = await User.findById(decode.id)
     .populate("wishlist.product")
-    .populate("cart.product");
+    .populate("cart.product")
+    .populate("addresses")
+    .populate("orders");
 
   next();
 };
