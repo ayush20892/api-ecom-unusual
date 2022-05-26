@@ -76,6 +76,14 @@ exports.login = BigPromise(async (req, res) => {
       message: "Incorrect Password !!",
     });
 
+  const userId = user._id;
+
+  const orders = await Order.find({ userId })
+    .populate("products.product")
+    .populate("address");
+
+  user.orders = orders;
+
   cookieToken(user, res);
 });
 
@@ -245,6 +253,14 @@ exports.updatePassword = BigPromise(async (req, res) => {
       message: "Password and Confirm Password didn't match",
     });
 
+  const userId = user._id;
+
+  const orders = await Order.find({ userId })
+    .populate("products.product")
+    .populate("address");
+
+  user.orders = orders;
+
   user.password = password;
 
   await user.save();
@@ -365,6 +381,19 @@ exports.deleteFromCart = BigPromise(async (req, res) => {
   });
 });
 
+exports.emptyCart = BigPromise(async (req, res) => {
+  const user = req.user;
+
+  user.cart = [];
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
+
 exports.updateCartQuantity = BigPromise(async (req, res) => {
   const user = req.user;
   const newCart = user.cart.map((prod) => {
@@ -407,7 +436,6 @@ exports.addAddress = BigPromise(async (req, res) => {
     mobileNo,
     user: user._id,
   };
-  console.log(addressObject);
   const address = await Address.create(addressObject);
 
   user.addresses.push(address);

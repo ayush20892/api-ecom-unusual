@@ -18,6 +18,7 @@ const {
   addToCart,
   deleteFromCart,
   updateCartQuantity,
+  emptyCart,
   addAddress,
   editAddress,
   deleteAddress,
@@ -64,6 +65,7 @@ router
   .post(isLoggedIn, addToCart)
   .delete(isLoggedIn, deleteFromCart)
   .put(isLoggedIn, updateCartQuantity);
+router.route("/user/emptycart").delete(isLoggedIn, emptyCart);
 
 // Address Route
 router.route("/user/address").post(isLoggedIn, addAddress);

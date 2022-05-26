@@ -1,5 +1,6 @@
 const BigPromise = require("./bigPromise");
 const User = require("../models/userModel");
+const Order = require("../models/orderModel");
 const customError = require("../utils/customError");
 const jwt = require("jsonwebtoken");
 
@@ -11,11 +12,21 @@ exports.isLoggedIn = async (req, res, next) => {
 
   const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
-  req.user = await User.findById(decode.id)
+  const user = await User.findById(decode.id)
     .populate("wishlist.product")
     .populate("cart.product")
     .populate("addresses")
     .populate("orders");
+
+  const userId = user._id;
+
+  const orders = await Order.find({ userId })
+    .populate("products.product")
+    .populate("address");
+
+  user.orders = orders;
+
+  req.user = user;
 
   next();
 };
@@ -28,7 +39,19 @@ exports.isUserVerified = async (req, res, next) => {
   const user = await User.findOne({
     code,
     forgotPasswordExpiry: { $gt: Date.now() },
-  });
+  })
+    .populate("wishlist.product")
+    .populate("cart.product")
+    .populate("addresses")
+    .populate("orders");
+
+  const userId = user._id;
+
+  const orders = await Order.find({ userId })
+    .populate("products.product")
+    .populate("address");
+
+  user.orders = orders;
 
   req.user = user;
 
